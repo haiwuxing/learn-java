@@ -1,82 +1,91 @@
+import java.util.ArrayList;
+import java.util.List;
+
 public class SyncArrayDemo {
-	
-	/**
-	 * 题目：生产者-消费者。
-	 * 同步访问一个数组Integer[10]，生产者不断地往数组放入整数1000，数组满时等待；消费者不断地将数组里面的数置零，数组空时等待。
-	 */
-      
-    private static final int[] mArray =new int[10];
-    private static int mSize = 0;
-    private static final int MAX_SIZE=10;
-    
-    // 用于互斥访问  array 对象
-    private final Object mArrayLock = new Object();
-    
-    public Object getArrayLock() {
-		return mArrayLock;
-	}
-      
-    public static void main(String[] args)  {    	
-    	SyncArrayDemo pc=new SyncArrayDemo();
-    	new Thread(pc.new Consumer()).start();
-        new Thread(pc.new Produce()).start();
-    }  
-    
-    private void safeWait() {
-    	try {
-			getArrayLock().wait();
-		} catch (InterruptedException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-    }
-  
-    public void consume(){
-    	synchronized(getArrayLock() ) {
-    		// 全部消费完
-    		while(mSize >0) {
-    			mArray[--mSize] = 0;
-    			System.out.println("successful consume and now size="+mSize);
-    		}
-    		// 通知生产者线程开始生产
-    		getArrayLock().notifyAll();
-    		
-    		// 自己等待
-			System.out.println("消费者线程开始等待");
-			safeWait();
-			System.out.println("消费者线程结束等待");
-    	}
-    }
-      
-    public void produce(int value){
-    	synchronized(getArrayLock()) {
-    		// 一直生产完（数量得够）
-    		while(mSize < MAX_SIZE) {
-    			mArray[mSize++] = value;
-    			System.out.println("successful produce and now size="+mSize);
-    		}
-    		// 通知消费者线程消费
-    		getArrayLock().notifyAll();
-    		// 自己等待
-            safeWait();
-    	}
-    }  
 
-	class Produce implements Runnable{
-        public void run(){
-            while(true) {
-            	produce(1000);
-            }
-            	
-        }
-    }
+    static List<Integer> list = new ArrayList<Integer>();
     
-    class Consumer implements Runnable{
-        public void run(){
-            while(true) {
-            	consume();
-            }
+    static int[] mArray = new int[10];
+    static int size = 0;
+    
+    static Object mLock = new Object();
+
+    static class Producer implements Runnable {
+        int [] array;
+        
+        public Producer(int[] array) {
+        	this.array = array;
         }
+
+        @Override
+        public void run() {
+        	
+        	while(true) {
+        		synchronized(mLock) {
+        			while(size >= 10) {
+        				try {
+							mLock.wait();
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+        			}
+        			
+                	System.out.println("生产者线程开始操作数组");
+                	for (int i = 0; i < 10; i++) {
+                		array[i] = i;
+                		//System.out.println(array[i]);
+                		//randomWait();
+                	}
+                	size = 10;
+                	System.out.println("生产者线程结束操作数组");
+                	mLock.notifyAll();
+                }
+        	}
+            
+            //To change body of generated methods, choose Tools | Templates.
+        }
+
     }
 
-}  
+    static class Consumer implements Runnable {
+        int [] array;
+        
+        public Consumer(int[] array) {
+        	this.array = array;
+        }
+
+        @Override
+        public void run() {
+        	
+        	while(true) {
+        		synchronized(mLock) {
+        			while(size <= 0) {
+        				try {
+							mLock.wait();
+						} catch (InterruptedException e) {
+							// TODO Auto-generated catch block
+							e.printStackTrace();
+						}
+        			}
+            		System.out.println("消费者线程开始操作数组");
+                	for (int i = 0; i < 10; i++) {
+                		System.out.println(array[i]);
+                		array[i] = 1000;
+                		//randomWait();
+                	}
+                	size = 0;
+                	System.out.println("消费者线程结束操作数组");
+                	mLock.notifyAll();    	
+                }
+        	}
+        }
+    }
+
+    public static void main(String[] args) {
+        Thread producer = new Thread(new Producer(mArray));
+        Thread consumer = new Thread(new Consumer(mArray));
+        producer.start();
+        consumer.start();
+    } 
+}
