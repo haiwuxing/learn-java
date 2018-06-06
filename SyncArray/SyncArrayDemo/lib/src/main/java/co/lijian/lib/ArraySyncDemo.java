@@ -8,7 +8,8 @@ public class ArraySyncDemo {
     static final Object mLock = new Object();
 
     // 用于同步线程。
-    static int mSize = 0;
+    // true: 生产完毕；false: 消费完毕。
+    static boolean mProduceDone = false;
 
     static class Producer implements Runnable {
         int [] array;
@@ -22,7 +23,7 @@ public class ArraySyncDemo {
 
             while(true) {
                 synchronized(mLock) {
-                    while (mSize >= 10) {
+                    while (mProduceDone) {
                         try {
                             mLock.wait();
                         } catch (InterruptedException e) {
@@ -33,7 +34,7 @@ public class ArraySyncDemo {
                     for (int i = 0; i < 10; i++) {
                         array[i] = i;
                     }
-                    mSize = 10;
+                    mProduceDone = true;
                     System.out.println("生产者线程操作数组: 结束");
                     mLock.notify();
                 }
@@ -54,7 +55,7 @@ public class ArraySyncDemo {
 
             while(true) {
                 synchronized(mLock) {
-                    while (mSize <= 0) {
+                    while (!mProduceDone) {
                         try {
                             mLock.wait();
                         } catch (InterruptedException e) {
@@ -66,7 +67,7 @@ public class ArraySyncDemo {
                         System.out.println(array[i]);
                         array[i] = 1000;
                     }
-                    mSize = 0;
+                    mProduceDone = false;
                     System.out.println("费者线程操作数组: 结束");
                     mLock.notify();
                 }
