@@ -8,5 +8,11 @@ public class EndWithDemo {
         } else {
             System.out.println("不以 .csv 结尾");
         }
+
+        if (str.toLowerCase().endsWith(".csv")) {
+            System.out.println("以 .csv 结尾");
+        } else {
+            System.out.println("不以 .csv 结尾");
+        }
     }
 }
